@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CmdExecutor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="command.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#">CmdExec</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link">Home <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-toggle="modal" data-target="#popupModal">Popup</a>
+            </li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fa fa-power-off" aria-hidden="true"></i>
+              </a>
+              <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                
+                <a class="dropdown-item" onclick="execShutdownByTimeBtnClicked()">Shutdown by timer</a>
+                <a class="dropdown-item" onclick="execShutdownWarnBtnClicked()">Shutdown without timer (but warn for background apps)</a>
+                <a class="dropdown-item" onclick="execShutdownForceBtnClicked()">Shutdown without timer and no warning</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" onclick="execRestartByTimeBtnClicked()">Restart by timer</a>
+                <a class="dropdown-item" onclick="execRestartWarnBtnClicked()">Restart without timer (but warn for background apps)</a>
+                <a class="dropdown-item" onclick="execRestartForceBtnClicked()">Restart without timer and no warning</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <div class="modal fade" id="popupModal" tabindex="-1" role="dialog" aria-labelledby="popupModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="exampleModalLabel">Show a popup to the user</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                <label for="popuptit">Enter title:</label>
+                <input type="text" name="popuptit" id="popuptit" class="form-control" placeholder="eg. Message from server" value="Message"><br>
+
+                  <label for="popupmsg">Enter message to popup:</label>
+                  <input type="text" name="popupmsg" id="popupmsg" class="form-control" placeholder="eg. Amma/Appa came here. Please shut down." value="Amma/Appa came here. Please shut down."><br>
+
+                  <label for="icon">Select what icon should be renderer: </label>
+                  <select name="icon" id="iconselect" class="form-control">
+                    <option value="0">Information</option>
+                    <option value="1">Question</option>
+                    <option value="2">Warning</option>
+                    <option value="3">Error</option>
+                  </select><br>
+                  
+                  <label for="button">Select how the buttons should be rendered:</label>
+                  <select name="button" id="btnselect" class="form-control">
+                    <option value="0">OK</option>
+                    <option value="1">OK or CANCEL</option>
+                    <option value="2">RETRY or CANCEL</option>
+                    <option value="3">YES or NO</option>
+                    <option value="4">YES or NO or CANCEL</option>
+                    <option value="5">ABORT or RETRY or IGNORE</option>
+                    <option value="6">CANCEL or TRY or CONTINUE</option>
+                  </select>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="showPopupMessage()">Show Popup</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+        <div class="row justify-content-end">
+            <div class="col-md-6">
+                <h1>Execute Command</h1>
+                <div class="form-group">
+                    <label for="command">Enter Filename of command:</label>
+                    <input type="text" name="filename" id="filename" placeholder="eg. explorer" class="form-control">
+                    
+                    <label for="command">Enter Arguments:</label>
+                    <input type="text" name="args" id="args" placeholder="eg. --help or /h" class="form-control">
+                    
+                    <label for="command">Enter Working Dir (Optional):</label>
+                    <input type="text" name="workingDir" id="workingDir" placeholder="C:/Users/Username/Desktop" class="form-control">
+                
+                  </div>
+                
+                <br>
+                <button class="btn btn-primary" onclick="execCmdBtnClicked()">Execute</button>
+                <br><br>
+                <table id="process_table">
+                  <tr id="heading">
+                    <th>Id</th>
+                    <th>Filename</th>
+                    <th>Arguments</th>
+                    <th>Working Directory</th>
+                    <th>Output log</th>
+                    <th>Status</th>
+                  </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group log-area">
+                    <h3>Output Log</h3>
+                    <textarea type="text" name="logs" id="logs" class="outputlogs" placeholder="Output of the applications will appear here..." readonly></textarea>
+                </div>
+                <h1>Power Options</h1>
+                <div class="form-group">
+                    <label for="command">Enter timer (in seconds):</label>
+                    <input type="text" name="timer" id="timer" value="10" placeholder="eg. 5 or 0 for immediate action" class="form-control">
+                    <label for="power_msg">Enter Signout Warning Message:</label>
+                    <input type="text" name="power_msg" id="power_msg" placeholder="eg. You are hacked!" class="form-control">
+                    <br>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<script src="/command.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</body>
+</html>
